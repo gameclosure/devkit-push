@@ -47,6 +47,11 @@ exports.register = function () {
         // try to grab the just-registered worker to send it the cache message
         _worker = registration.installing || registration.waiting || registration.active;
 
+        // set the default target window to open when notification is clicked
+        exports.updateSettings({
+          href: location.toString()
+        });
+
         // Do we already have a push message subscription?
         return registration.pushManager
           .getSubscription()
