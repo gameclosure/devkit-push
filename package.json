@@ -1,0 +1,15 @@
+{
+  "name": "devkit-push",
+  "author": "Martin Hunt",
+  "devkit": {
+    "clientPaths": {
+      "devkit.push": "js"
+    },
+    "extensions": {
+      "build": "build"
+    }
+  },
+  "dependencies": {
+    "vinyl": "^0.4.6"
+  }
+}
