@@ -17,7 +17,7 @@ var _worker;
 
 exports.register = function () {
   if ('serviceWorker' in navigator) {
-    return Promise.resolve(navigator.serviceWorker.register('push-worker.js'))
+    return Promise.resolve(navigator.serviceWorker.register('push-worker.js', {scope: 'push-worker.js'}))
       .then(function initialize (registration) {
         if (!('showNotification' in ServiceWorkerRegistration.prototype)) {
           throw new exports.NotSupportedError('Notifications aren\'t supported.');

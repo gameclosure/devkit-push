@@ -11,8 +11,12 @@ exports.onBeforeBuild = function (devkitAPI, app, config, cb) {
     config.browser.copy.push(getPath('js/db.js'));
 
     if (config.browser.webAppManifest) {
-      config.browser.webAppManifest.gcm_sender_id = app.manifest.modules.push.gcmSenderId;
-      config.browser.webAppManifest.gcm_user_visible_only = true;
+      if (!app.manifest.modules || !app.manifest.modules.push || !app.manifest.modules.gcmSenderId) {
+        console.warn('[warn] No gcmSenderId found in manifest, push will be disabled (modules.push.gcmSenderId)');
+      } else {
+        config.browser.webAppManifest.gcm_sender_id = app.manifest.modules.push.gcmSenderId;
+        config.browser.webAppManifest.gcm_user_visible_only = true;
+      }
     }
   }
 
