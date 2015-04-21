@@ -11,7 +11,7 @@ exports.onBeforeBuild = function (devkitAPI, app, config, cb) {
     config.browser.copy.push(getPath('js/db.js'));
 
     if (config.browser.webAppManifest) {
-      if (!app.manifest.modules || !app.manifest.modules.push || !app.manifest.modules.gcmSenderId) {
+      if (!app.manifest.modules || !app.manifest.modules.push || !app.manifest.modules.push.gcmSenderId) {
         console.warn('[warn] No gcmSenderId found in manifest, push will be disabled (modules.push.gcmSenderId)');
       } else {
         config.browser.webAppManifest.gcm_sender_id = app.manifest.modules.push.gcmSenderId;
