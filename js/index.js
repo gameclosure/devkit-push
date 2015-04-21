@@ -13,10 +13,12 @@ exports.BlockedByUserError = createErrorClass('BlockedByUserError', 'BLOCKED_BY_
 //   - err.internalError may contain additional details
 exports.SubscriptionFailedError = createErrorClass('SubscriptionFailedError', 'UNKNOWN_ERROR');
 
+var _worker;
+
 exports.register = function () {
   if ('serviceWorker' in navigator) {
     return Promise.resolve(navigator.serviceWorker.register('push-worker.js'))
-      .then(function initialize (serviceWorkerRegistration) {
+      .then(function initialize (registration) {
         if (!('showNotification' in ServiceWorkerRegistration.prototype)) {
           throw new exports.NotSupportedError('Notifications aren\'t supported.');
         }
@@ -32,12 +34,25 @@ exports.register = function () {
           throw new exports.NotSupportedError('Push messaging isn\'t supported.');
         }
 
+        if (registration.installing) {
+          logger.log('push worker: installing');
+        } else if (registration.waiting) {
+          logger.log('push worker: waiting (close and reopen tab)');
+        } else if (registration.active) {
+          logger.log('push worker: ready');
+        } else {
+          logger.error('push worker: unknown status???');
+        }
+
+        // try to grab the just-registered worker to send it the cache message
+        _worker = registration.installing || registration.waiting || registration.active;
+
         // Do we already have a push message subscription?
-        return serviceWorkerRegistration.pushManager
+        return registration.pushManager
           .getSubscription()
           .then(function(subscription) {
             if (!subscription) {
-              return subscribe(serviceWorkerRegistration);
+              return subscribe(registration);
             } else {
               return subscription.subscriptionId;
             }
@@ -50,8 +65,15 @@ exports.register = function () {
   }
 };
 
-function subscribe (serviceWorkerRegistration) {
-  return serviceWorkerRegistration.pushManager
+exports.updateSettings = function (settings) {
+  _worker.postMessage({
+    command: 'settings',
+    settings: settings
+  });
+};
+
+function subscribe (registration) {
+  return registration.pushManager
     .subscribe()
     .then(function(subscription) {
       return subscription.subscriptionId;

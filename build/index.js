@@ -8,6 +8,7 @@ var getPath = function (filePath) {
 exports.onBeforeBuild = function (devkitAPI, app, config, cb) {
   if (config.browser) {
     config.browser.copy.push(getPath('js/push-worker.js'));
+    config.browser.copy.push(getPath('js/db.js'));
 
     if (config.browser.webAppManifest) {
       config.browser.webAppManifest.gcm_sender_id = app.manifest.modules.push.gcmSenderId;
