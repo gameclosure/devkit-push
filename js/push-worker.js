@@ -140,8 +140,8 @@ function showIfUnseen(server, notification) {
 function showNotification(notification) {
   console.log('showing', notification);
   return self.registration.showNotification(notification.title, {
-      body: notification.body,
-      icon: notification.icon || 'icon.png',
+      body: notification.body || notification.content,
+      icon: notification.icon || 'resources/icons/icon.png',
       tag: notification.id // unique id, non-unique for replace
     });
 }
@@ -160,3 +160,7 @@ function loadPushHandler(server) {
 
 var _loadedPushHandler = false;
 getDb().then(loadPushHandler);
+
+self.addEventListener('activate', function (event) {
+  console.log('activated!');
+});
