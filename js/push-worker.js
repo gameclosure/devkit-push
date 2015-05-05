@@ -77,7 +77,6 @@ function getDb() {
 }
 
 function updateSettings(settings) {
-  console.log('storing settings', settings);
   return getDb()
     .then(function (server) {
       // TODO: no way to delete settings, probably ok
@@ -85,6 +84,7 @@ function updateSettings(settings) {
       return Promise
         .all(keys.map(function (key) {
           var value = settings[key];
+          console.log('set setting:', key, '<-', value);
           return server.settings
             .query('key')
             .filter('key', key)
@@ -113,7 +113,7 @@ function getSetting(server, key) {
     .execute()
     .then(function (settings) {
       if (settings.length) {
-        console.log('retrieved setting', key, settings[0].value);
+        console.log('get setting:', key, '->', settings[0].value);
         return settings[0].value;
       }
       return undefined;

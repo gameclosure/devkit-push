@@ -13,11 +13,36 @@ exports.BlockedByUserError = createErrorClass('BlockedByUserError', 'BLOCKED_BY_
 //   - err.internalError may contain additional details
 exports.SubscriptionFailedError = createErrorClass('SubscriptionFailedError', 'UNKNOWN_ERROR');
 
+exports.hasNativeRegistration = GLOBAL.NATIVE && NATIVE.events;
+
+var _nativeRegistration;
+if (exports.hasNativeRegistration) {
+  _nativeRegistration = new Promise(function (resolve, reject) {
+    NATIVE.events.registerHandler('DevkitPushRegisterEvent', function (data) {
+      if (!data || data.error) {
+        var error = exports.SubscriptionFailedError();
+        error.internalError = data;
+        reject(error);
+      } else {
+        resolve(nativeSubscriptionToJSON(data));
+      }
+    });
+  });
+}
+
 var _worker;
 
 exports.register = function () {
   if ('serviceWorker' in navigator) {
-    return Promise.resolve(navigator.serviceWorker.register('push-worker.js', {scope: 'push-worker.js'}))
+
+    var browserPromise;
+    try {
+      browserPromise = navigator.serviceWorker.register('push-worker.js');
+    } catch (e) {
+      return Promise.reject(e);
+    }
+
+    return Promise.resolve(browserPromise)
       .then(function initialize (registration) {
         if (!('showNotification' in ServiceWorkerRegistration.prototype)) {
           throw new exports.NotSupportedError('Notifications aren\'t supported.');
