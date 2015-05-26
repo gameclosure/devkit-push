@@ -3,13 +3,14 @@
   "author": "Martin Hunt",
   "devkit": {
     "clientPaths": {
-      "devkit.push": "js"
+      "devkitpush": "js"
     },
     "extensions": {
-      "build": "build"
+      "build": "build",
+      "ios": "ios",
+      "android": "android"
     }
   },
   "dependencies": {
-    "vinyl": "^0.4.6"
   }
 }

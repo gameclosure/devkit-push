@@ -1,3 +1,6 @@
+import device;
+
+/*
 import Promise;
 from devkit.errors import createErrorClass;
 
@@ -12,23 +15,144 @@ exports.BlockedByUserError = createErrorClass('BlockedByUserError', 'BLOCKED_BY_
 // thrown if an unknown error occurred during subscription
 //   - err.internalError may contain additional details
 exports.SubscriptionFailedError = createErrorClass('SubscriptionFailedError', 'UNKNOWN_ERROR');
-
+*/
 exports.hasNativeRegistration = GLOBAL.NATIVE && NATIVE.events;
+var nativeSendEvent = NATIVE && NATIVE.plugins && bind(NATIVE.plugins, 'sendEvent') || function () {};
 
 var _nativeRegistration;
 if (exports.hasNativeRegistration) {
-  _nativeRegistration = new Promise(function (resolve, reject) {
-    NATIVE.events.registerHandler('DevkitPushRegisterEvent', function (data) {
-      if (!data || data.error) {
-        var error = exports.SubscriptionFailedError();
-        error.internalError = data;
-        reject(error);
-      } else {
-        resolve(nativeSubscriptionToJSON(data));
-      }
-    });
-  });
+  exports.senderId = null;
+  exports.platform = null;
+  if (device.isIOS) {
+    exports.platform = 'apns';
+  } else if (device.isAndroid) {
+    exports.platform = 'gcm';
+
+    if (CONFIG &&
+        CONFIG.modules &&
+        CONFIG.modules.devkitpush &&
+        CONFIG.modules.devkitpush.gcmSenderId) {
+
+      exports.senderId = CONFIG.modules.devkitpush.gcmSenderId;
+    }
+  } else {
+    exports.platform = 'unsupported';
+  }
+  // TODO: support web accurately
+
+  NATIVE.events.registerHandler('DevkitPushRegisterEvent', bind(this, function (data) {
+    logger.log("{devkitpush} DevkitPushRegisterEvent received");
+
+    var err = !data || data.error;
+    if (err) {
+      logger.log("{devkitpush} Failed to register push token");
+    }
+    // call register callback if it exists
+    if (this._registrationCallback) {
+      this._registrationCallback(err, data);
+      this._registrationResponse = null;
+    } else {
+      // store response if no callback
+      this._registrationResponse = {err: err, res: data};
+    }
+  }));
+
+  NATIVE.events.registerHandler('DevkitPushNotification', bind(this, function (data) {
+    var err = !data || data.error;
+    if (err) {
+      logger.log("{devkitpush} error processing push notification");
+    }
+
+    logger.log("{devkitpush} push notification!", data);
+    if (this._notificationCallback) {
+      this._notificationCallback(null, data);
+      this._notificationResponse = null;
+    } else {
+      // store most recent notification if no callback?
+      this._notificationResponse = {err: null, res: data};
+    }
+  }));
+
+  // tell native we are listening in case it is waiting
+  nativeSendEvent("DevkitPushPlugin", "readyForPush", "{}");
 }
+
+/**
+ * getPushToken
+ *
+ * Generate a push token (and request permission if necessary.
+ */
+exports.getPushToken = function () {
+    if (exports.hasNativeRegistration) {
+      // permissions are only required on ios
+      if (device.isIOS) {
+        nativeSendEvent("DevkitPushPlugin", "getPushToken", "{}");
+      } else {
+        nativeSendEvent(
+          "DevkitPushPlugin",
+          "getPushToken",
+          JSON.stringify({senderId: this.senderId})
+        );
+      }
+  }
+};
+
+/**
+ * set a callback for push tokens
+ *
+ * Push tokens are generated automatically on android or in response to a
+ * permission request in ios.
+ *
+ * Callback is called with err, res where upon success res
+ * is an object in the form:
+ * {
+ *   type: ['apns'|'gcm'],
+ *   token: 'pushtoken'
+ * }
+ */
+exports.setRegistrationCallback = function (cb) {
+  logger.log("{devkitpush} setting push token registration callback");
+  this._registrationCallback = cb;
+
+  // if response already cached, call it immediately
+  if (this._registrationResponse) {
+    logger.log("{devkitpush} token found - firing callback immediately");
+    this.registrationCallback(
+      this._registrationResponse.err,
+      this._registrationResponse.res
+    );
+    this._registrationResponse = null;
+  }
+};
+
+/**
+ * set a callback for push notifications
+ *
+ * Callback is called with err, res where upon success res
+ * is an object in the form:
+ * {
+ *   id: 'push notification id',
+ *   title: 'push title',
+ *   message: 'push message',
+ *   fromStatusBar: true/false if app was opened from notification,
+ *   jsonExtras: {}  (optional object with additional push data)
+ * }
+ */
+exports.setNotificationCallback = function (cb) {
+  this._notificationCallback = cb;
+
+  // if a notification already came in, send it now
+  if (this._notificationResponse) {
+    this._notificationCallback(
+      this._notificationResponse.err,
+      this._notificationResponse.res
+    );
+    this._notificationResponse = null;
+  }
+};
+
+
+
 
 var _worker;
 

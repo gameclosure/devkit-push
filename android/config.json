@@ -1,0 +1,16 @@
+{
+		"copyFiles": [
+			"DevkitPushPlugin.java",
+			"GcmIntentService.java",
+			"GcmBroadcastReceiver.java",
+			"AppInfo.java",
+			"res/values/version.xml"
+		],
+		"libraries": [
+		],
+		"jars": [
+			"gps.jar"
+		],
+		"injectionXML": "manifest.xml",
+		"injectionXSL": "manifest.xsl"
+}
