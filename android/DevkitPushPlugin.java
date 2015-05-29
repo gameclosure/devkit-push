@@ -71,12 +71,10 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
     }
 
     public void onReceive(Context context, Intent intent) {
-        logger.log("Received intent (hopefully a push notification)");
-
         Bundle extras = intent.getExtras();
         String type = extras.getString("TYPE");
         if (type.equals("push_notification")) {
-            logger.log("{devkitpush} Received notification intent while running");
+            logger.log("{devkit.push} Received notification intent while running");
             EventQueue.pushEvent(new DevkitPushNotificationEvent(extras, false));
         }
     }
@@ -90,7 +88,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
         Bundle extras = activity.getIntent().getExtras();
         String type = extras.getString("TYPE");
         if (type.equals("push_notification")) {
-            logger.log("{devkitpush} Application started from push notification");
+            logger.log("{devkit.push} Application started from push notification");
             // store until requested
             launchNotification = new DevkitPushNotificationEvent(extras, true);
         }
@@ -107,9 +105,9 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
         try {
             JSONObject jsonObject = new JSONObject(jsonData);
             senderId = jsonObject.getString("senderId");
-            logger.log("{devkitpush} Generating push token with sender id:", senderId);
+            logger.log("{devkit.push} Generating push token with sender id:", senderId);
         } catch (Exception e) {
-            logger.log("{devkitpush} senderId required to generate push token", e);
+            logger.log("{devkit.push} senderId required to generate push token", e);
         }
 
         // Check device for Play Services APK. If check succeeds, proceed with GCM registration.
@@ -120,11 +118,11 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
             if (regid.isEmpty()) {
                 registerInBackground();
             } else {
-                logger.log("{devkitpush} existing registration id found:", regid);
+                logger.log("{devkit.push} existing registration id found:", regid);
                 submitPushToken(false, regid);
             }
         } else {
-            logger.log("{devkitpush} No valid Google Play Services APK found.");
+            logger.log("{devkit.push} No valid Google Play Services APK found.");
         }
     }
 
@@ -148,7 +146,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
                 GooglePlayServicesUtil.getErrorDialog(resultCode, _activity,
                         PLAY_SERVICES_RESOLUTION_REQUEST).show();
             } else {
-                logger.log("{devkitpush} This device is not supported with Google Play Services");
+                logger.log("{devkit.push} This device is not supported with Google Play Services");
                 // finish();
             }
             return false;
@@ -166,7 +164,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
     private void storeRegistrationId(Context context, String regId) {
         final SharedPreferences prefs = getGcmPreferences(context);
         int appVersion = getAppVersion(context);
-        logger.log("{devkitpush} Saving push token on app version " + appVersion);
+        logger.log("{devkit.push} Saving push token on app version " + appVersion);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(PROPERTY_REG_ID, regId);
         editor.putInt(PROPERTY_APP_VERSION, appVersion);
@@ -184,7 +182,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
         final SharedPreferences prefs = getGcmPreferences(context);
         String registrationId = prefs.getString(PROPERTY_REG_ID, "");
         if (registrationId.isEmpty()) {
-            logger.log("{devkitpush} Registration not found.");
+            logger.log("{devkit.push} Registration not found.");
             return "";
         }
         // Check if app was updated; if so, it must clear the registration ID
@@ -193,7 +191,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
         int registeredVersion = prefs.getInt(PROPERTY_APP_VERSION, Integer.MIN_VALUE);
         int currentVersion = getAppVersion(context);
         if (registeredVersion != currentVersion) {
-            logger.log("{devkitpush} App version changed.");
+            logger.log("{devkit.push} App version changed.");
             return "";
         }
         return registrationId;
@@ -206,7 +204,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
      * shared preferences.
      */
     private void registerInBackground() {
-        logger.log("{devkitpush} registering for push token in background");
+        logger.log("{devkit.push} registering for push token in background");
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -239,7 +237,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
 
             @Override
             protected void onPostExecute(String msg) {
-                // logger.log("{devkitpush} " + msg);
+                // logger.log("{devkit.push} " + msg);
             }
         }.execute(null, null, null);
     }
@@ -278,7 +276,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
     }
 
     private void submitPushToken(boolean newToken, String token) {
-        logger.log("{devkitpush} Push Token: " + token);
+        logger.log("{devkit.push} Push Token: " + token);
         EventQueue.pushEvent(new DevkitPushRegisterEvent(token, newToken));
     }
 
@@ -286,7 +284,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
         Bundle extras = intent.getExtras();
         String type = extras.getString("TYPE");
         if (type.equals("push_notification")) {
-            logger.log("{devkitpush} Running application resumed from push notification");
+            logger.log("{devkit.push} Running application resumed from push notification");
             EventQueue.pushEvent(new DevkitPushNotificationEvent(extras, true));
         }
     }

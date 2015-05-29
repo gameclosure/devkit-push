@@ -1,236 +1,265 @@
 import device;
-
-/*
 import Promise;
 from devkit.errors import createErrorClass;
 
-// thrown if browser does not support push
-exports.NotSupportedError = createErrorClass('NotSupportedError', 'NOT_SUPPORTED');
-
-// thrown if user did not allow push
-//   - if the user previously blocked push, code is BLOCKED_BY_USER
-//   - if the user just blocked push, code is PERMISSION_DENIED
-exports.BlockedByUserError = createErrorClass('BlockedByUserError', 'BLOCKED_BY_USER');
-
-// thrown if an unknown error occurred during subscription
-//   - err.internalError may contain additional details
-exports.SubscriptionFailedError = createErrorClass('SubscriptionFailedError', 'UNKNOWN_ERROR');
-*/
-exports.hasNativeRegistration = GLOBAL.NATIVE && NATIVE.events;
+var hasNativeRegistration = NATIVE && NATIVE.events;
 var nativeSendEvent = NATIVE && NATIVE.plugins && bind(NATIVE.plugins, 'sendEvent') || function () {};
 
-var _nativeRegistration;
-if (exports.hasNativeRegistration) {
-  exports.senderId = null;
-  exports.platform = null;
-  if (device.isIOS) {
-    exports.platform = 'apns';
-  } else if (device.isAndroid) {
-    exports.platform = 'gcm';
+var _worker;
+var DevkitPush = Class(function(supr) {
+  this.senderId;
+  this.platform;
 
-    if (CONFIG &&
-        CONFIG.modules &&
-        CONFIG.modules.devkitpush &&
-        CONFIG.modules.devkitpush.gcmSenderId) {
+  // thrown if browser does not support push
+  this.NotSupportedError = createErrorClass('NotSupportedError', 'NOT_SUPPORTED');
 
-      exports.senderId = CONFIG.modules.devkitpush.gcmSenderId;
+  // thrown if user did not allow push
+  //   - if the user previously blocked push, code is BLOCKED_BY_USER
+  //   - if the user just blocked push, code is PERMISSION_DENIED
+  this.BlockedByUserError = createErrorClass('BlockedByUserError', 'BLOCKED_BY_USER');
+
+  // thrown if an unknown error occurred during subscription
+  //   - err.internalError may contain additional details
+  this.SubscriptionFailedError = createErrorClass('SubscriptionFailedError', 'UNKNOWN_ERROR');
+
+  this.init = function () {
+    if (device.isIOS) {
+      this.platform = 'apns';
+    } else if (device.isAndroid) {
+      this.platform = 'gcm';
+      if (CONFIG &&
+          CONFIG.modules &&
+          CONFIG.modules.push &&
+          CONFIG.modules.push.gcmSenderId) {
+        this.senderId = CONFIG.modules.push.gcmSenderId;
+      }
+    } else if ('serviceWorker' in navigator) {
+      this.platform = 'browser';
+    } else {
+      this.platform = 'unsupported';
     }
-  } else {
-    exports.platform = 'unsupported';
-  }
-  // TODO: support web accurately
 
-  NATIVE.events.registerHandler('DevkitPushRegisterEvent', bind(this, function (data) {
-    logger.log("{devkitpush} DevkitPushRegisterEvent received");
+    // if on native, set up handlers and collect startup notifications if needed
+    if (hasNativeRegistration) {
+      NATIVE.events.registerHandler(
+        'DevkitPushRegisterEvent',
+        bind(this, 'onRegister')
+      );
+      NATIVE.events.registerHandler(
+        'DevkitPushNotification',
+        bind(this, 'onNotification')
+      );
 
+      // tell native we are listening in case it has pending notifications
+      nativeSendEvent("DevkitPushPlugin", "readyForPush", "{}");
+    }
+  };
+
+  /**
+   * getPushToken
+   *
+   * Generate a push token (and request permission if necessary).
+   * Callback is called with err, res where upon success res
+   * is an object in the form:
+   * {
+   *   type: ['apns'|'gcm'|'browser'],
+   *   token: 'pushtoken'
+   * }
+   */
+  this.getPushToken = function (cb) {
+    if (device.isMobileNative) {
+      nativeSendEvent(
+        "DevkitPushPlugin",
+        "getPushToken",
+        JSON.stringify({senderId: this.senderId})
+      );
+    }
+
+    this._registrationCallback = cb;
+    // if response already cached, call it immediately
+    if (this._registrationResponse) {
+      this.registrationCallback(
+        this._registrationResponse.err,
+        this._registrationResponse.res
+      );
+      this._registrationResponse = null;
+    }
+  };
+
+  this.onRegister = function (data) {
+    logger.log("{devkit.push} DevkitPushRegisterEvent received in js");
     var err = !data || data.error;
-    if (err) {
-      logger.log("{devkitpush} Failed to register push token");
-    }
-    // call register callback if it exists
     if (this._registrationCallback) {
+      if (err) {
+        logger.log("{devkit.push} Failed to register push token");
+      }
       this._registrationCallback(err, data);
       this._registrationResponse = null;
     } else {
       // store response if no callback
       this._registrationResponse = {err: err, res: data};
     }
-  }));
+  };
 
-  NATIVE.events.registerHandler('DevkitPushNotification', bind(this, function (data) {
+  this.onNotification = function (data) {
     var err = !data || data.error;
     if (err) {
-      logger.log("{devkitpush} error processing push notification");
+      logger.log("{devkit.push} error processing push notification");
     }
 
-    logger.log("{devkitpush} push notification!", data);
-    if (this._notificationCallback) {
-      this._notificationCallback(null, data);
+    if (this._notificationHandler) {
+      this._notificationHandler(null, data);
       this._notificationResponse = null;
     } else {
-      // store most recent notification if no callback?
+      // store most recent notification if no handler
       this._notificationResponse = {err: null, res: data};
     }
-  }));
-
-  // tell native we are listening in case it is waiting
-  nativeSendEvent("DevkitPushPlugin", "readyForPush", "{}");
-}
-
-/**
- * getPushToken
- *
- * Generate a push token (and request permission if necessary.
- */
-exports.getPushToken = function () {
-    if (exports.hasNativeRegistration) {
-      // permissions are only required on ios
-      if (device.isIOS) {
-        nativeSendEvent("DevkitPushPlugin", "getPushToken", "{}");
-      } else {
-        nativeSendEvent(
-          "DevkitPushPlugin",
-          "getPushToken",
-          JSON.stringify({senderId: this.senderId})
-        );
-      }
-  }
-};
-
-/**
- * set a callback for push tokens
- *
- * Push tokens are generated automatically on android or in response to a
- * permission request in ios.
- *
- * Callback is called with err, res where upon success res
- * is an object in the form:
- * {
- *   type: ['apns'|'gcm'],
- *   token: 'pushtoken'
- * }
- */
-exports.setRegistrationCallback = function (cb) {
-  logger.log("{devkitpush} setting push token registration callback");
-  this._registrationCallback = cb;
-
-  // if response already cached, call it immediately
-  if (this._registrationResponse) {
-    logger.log("{devkitpush} token found - firing callback immediately");
-    this.registrationCallback(
-      this._registrationResponse.err,
-      this._registrationResponse.res
-    );
-    this._registrationResponse = null;
-  }
-};
-
-/**
- * set a callback for push notifications
- *
- * Callback is called with err, res where upon success res
- * is an object in the form:
- * {
- *   id: 'push notification id',
- *   title: 'push title',
- *   message: 'push message',
- *   fromStatusBar: true/false if app was opened from notification,
- *   jsonExtras: {}  (optional object with additional push data)
- * }
- */
-exports.setNotificationCallback = function (cb) {
-  this._notificationCallback = cb;
-
-  // if a notification already came in, send it now
-  if (this._notificationResponse) {
-    this._notificationCallback(
-      this._notificationResponse.err,
-      this._notificationResponse.res
-    );
-    this._notificationResponse = null;
-  }
-};
+  };
 
 
+  /**
+   * set a handler function for push notifications
+   *
+   * Function is called with err, res where upon success res
+   * is an object in the form:
+   * {
+   *   id: 'push notification id',
+   *   title: 'push title',
+   *   message: 'push message',
+   *   fromStatusBar: true/false if app was opened from notification,
+   *   jsonExtras: {}  (optional object with additional push data)
+   * }
+   */
+  this.setNotificationHandler = function (fn) {
+    this._notificationHandler = fn;
 
-
-var _worker;
-
-exports.register = function () {
-  if ('serviceWorker' in navigator) {
-
-    var browserPromise;
-    try {
-      browserPromise = navigator.serviceWorker.register('push-worker.js');
-    } catch (e) {
-      return Promise.reject(e);
+    // if a notification already came in, send it now
+    if (this._notificationResponse) {
+      this._notificationHandler(
+        this._notificationResponse.err,
+        this._notificationResponse.res
+      );
+      this._notificationResponse = null;
     }
+  };
 
-    return Promise.resolve(browserPromise)
-      .then(function initialize (registration) {
-        if (!('showNotification' in ServiceWorkerRegistration.prototype)) {
-          throw new exports.NotSupportedError('Notifications aren\'t supported.');
-        }
 
-        // Check the current Notification permission. If its denied, it's a
-        // permanent block until the user changes the permission
-        if (Notification.permission === 'denied') {
-          throw new exports.BlockedByUserError('The user has blocked notifications.');
-        }
-
-        // Check if push messaging is supported
-        if (!('PushManager' in window)) {
-          throw new exports.NotSupportedError('Push messaging isn\'t supported.');
-        }
-
-        if (registration.installing) {
-          logger.log('push worker: installing');
-        } else if (registration.waiting) {
-          logger.log('push worker: waiting (close and reopen tab)');
-        } else if (registration.active) {
-          logger.log('push worker: ready');
-        } else {
-          logger.error('push worker: unknown status???');
-        }
-
-        // try to grab the just-registered worker to send it the cache message
-        _worker = registration.installing || registration.waiting || registration.active;
-
-        // set the default target window to open when notification is clicked
-        exports.updateSettings({
-          href: location.toString()
+  /**
+   * register
+   *
+   * Promise that asks permission to notify the user (if necessary), generates
+   * a push token, then resolves with an object in the form:
+   * {
+   *  pushToken: token,
+   *  platform: platform ('gcm'|'apns'|'browser')
+   * }
+   */
+  this.register = function () {
+    if (device.isMobileNative) {
+      return Promise.promisify(this.getPushToken)
+        .bind(this)()
+        .then(function(opts) {
+          return {
+            pushToken: opts.token,
+            platform: opts.type
+          };
         });
+    } else if ('serviceWorker' in navigator) {
+      var browserPromise;
+      try {
+        browserPromise = navigator.serviceWorker.register('push-worker.js');
+      } catch (e) {
+        return Promise.reject(e);
+      }
 
-        // Do we already have a push message subscription?
-        return registration.pushManager
-          .getSubscription()
-          .then(function(subscription) {
-            if (!subscription) {
-              return subscribe(registration);
-            } else {
-              return subscription.subscriptionId;
-            }
-          })
-      })
-      .catch(function(err) {
-        logger.warn(err);
-        throw err;
-      });
-  }
-};
+      return Promise.resolve(browserPromise)
+        .then(function initialize (registration) {
+          if (!('showNotification' in ServiceWorkerRegistration.prototype)) {
+            throw new exports.NotSupportedError('Notifications aren\'t supported.');
+          }
 
-exports.updateSettings = function (settings) {
-  _worker.postMessage({
-    command: 'settings',
-    settings: settings
-  });
-};
+          // Check the current Notification permission. If its denied, it's a
+          // permanent block until the user changes the permission
+          if (Notification.permission === 'denied') {
+            throw new exports.BlockedByUserError('The user has blocked notifications.');
+          }
 
-function subscribe (registration) {
+          // Check if push messaging is supported
+          if (!('PushManager' in window)) {
+            throw new exports.NotSupportedError('Push messaging isn\'t supported.');
+          }
+
+          if (registration.installing) {
+            logger.log('push worker: installing');
+          } else if (registration.waiting) {
+            logger.log('push worker: waiting (close and reopen tab)');
+          } else if (registration.active) {
+            logger.log('push worker: ready');
+          } else {
+            logger.error('push worker: unknown status???');
+          }
+
+          // try to grab the just-registered worker to send it the cache message
+          _worker = registration.installing || registration.waiting || registration.active;
+
+          // set the default target window to open when notification is clicked
+          exports.updateSettings({
+            href: location.toString()
+          });
+
+          // Do we already have a push message subscription?
+          return registration.pushManager
+            .getSubscription()
+            .then(function(subscription) {
+              if (!subscription) {
+                return _serviceWorkerSubscribe(registration);
+              } else {
+                return {
+                  pushToken: subscription.subscriptionId,
+                  platform: exports.platform
+                };
+              }
+            })
+        })
+        .catch(function(err) {
+          logger.warn(err);
+          throw err;
+        });
+    }
+  };
+
+  // update worker settings - see web-worker.js for more details
+  this.updateSettings = function (settings) {
+    _worker && _worker.postMessage({
+      command: 'settings',
+      settings: settings
+    });
+  };
+
+  // web worker debugging only - will show a placeholder notification
+  this.useDemoPushHandler = function (useDemo) {
+    logger.log("{devkit.push} enabling demo push handler for web workers");
+    _worker && _worker.postMessage({
+      command: 'useDemoPushHandler',
+      useDemoPushHandler: useDemo
+    });
+  };
+
+
+});
+
+exports = new DevkitPush();
+
+
+// used in service worker notification manager subscription
+function _serviceWorkerSubscribe(registration) {
   return registration.pushManager
-    .subscribe()
+    .subscribe({userVisibleOnly: true})
     .then(function(subscription) {
-      return subscription.subscriptionId;
+      return {
+        pushToken: subscription.subscriptionId,
+        platform: exports.platform
+      };
     })
     .catch(function(e) {
       // wrap the error in either BlockedByUserError or SubscriptionFailedError
@@ -245,9 +274,10 @@ function subscribe (registration) {
         // network errors, and lacking gcm_sender_id and/or
         // gcm_user_visible_only in the manifest.
         err = new exports.SubscriptionFailedError('Unable to subscribe to push.');
+        console.error("Error subscribing to push notifications:", e);
       }
 
       err.internalError = e;
       throw err;
     });
-}
+};

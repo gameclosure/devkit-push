@@ -36,7 +36,7 @@ public class GcmBroadcastReceiver extends WakefulBroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        // logger.log("{devkitpush} GcmBroadcastReceiver received notification");
+        // logger.log("{devkit.push} GcmBroadcastReceiver received notification");
         // Explicitly specify that GcmIntentService will handle the intent.
         ComponentName comp = new ComponentName(context.getPackageName(),
                 GcmIntentService.class.getName());

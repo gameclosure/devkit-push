@@ -38,6 +38,24 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
+_useDemoPushHandler = false;
+self.addEventListener('push', function (event) {
+  demoPushHandler(event);
+});
+
+function demoPushHandler(event) {
+  if (_useDemoPushHandler) {
+    console.log('received push notification');
+    // fetch notification content from your server if you need to
+    // transfer data via web notifications
+    showNotification({
+      title: 'Push Notification Received',
+      body: 'Demo Push Notification Content'
+    });
+  }
+}
+
+
 self.addEventListener('message', function (event) {
   switch (event.data.command) {
     case 'settings':
@@ -45,6 +63,9 @@ self.addEventListener('message', function (event) {
       if (event.waitUntil) {
         event.waitUntil(res);
       }
+      break;
+    case 'useDemoPushHandler':
+      _useDemoPushHandler = !!event.data.useDemoPushHandler;
       break;
   }
 });
@@ -126,7 +147,7 @@ function showIfUnseen(server, notification) {
     .filter('id', notification.id)
     .execute()
     .then(function (results) {
-      // alreayd seen
+      // already seen
       if (results.length) { return; }
 
       return Promise

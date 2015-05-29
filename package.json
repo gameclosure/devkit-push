@@ -3,7 +3,7 @@
   "author": "Martin Hunt",
   "devkit": {
     "clientPaths": {
-      "devkitpush": "js"
+      "devkit.push": "js"
     },
     "extensions": {
       "build": "build",

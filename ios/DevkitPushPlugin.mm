@@ -18,12 +18,12 @@
 }
 
 - (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings {
-    NSLOG(@"{devkitpush} didRegisterUserNotificationSettings");
+    NSLOG(@"{devkit.push} didRegisterUserNotificationSettings");
 
 }
 
 - (void) didFailToRegisterForRemoteNotificationsWithError:(NSError *)error application:(UIApplication *)app {
-    NSLOG(@"{devkitpush} Failed to register for remote notifications");
+    NSLOG(@"{devkit.push} Failed to register for remote notifications");
     [[PluginManager get] dispatchJSEvent:@{
                                            @"name": @"DevkitPushRegisterEvent",
                                            @"type": @"apns",
@@ -32,12 +32,12 @@
 }
 
 - (void) didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken application:(UIApplication *)app {
-    NSLOG(@"{devkitpush} Registering for remote notifications");
+    NSLOG(@"{devkit.push} Registering for remote notifications");
     NSString *deviceTokenString = [[[deviceToken description]
                 stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]] stringByReplacingOccurrencesOfString:@" " withString: @""];
     dispatch_time_t t = dispatch_time(DISPATCH_TIME_NOW, 1000000000 * 15);
     dispatch_after(t, dispatch_get_main_queue(), ^{
-            NSLOG(@"{devkitpush} Registering for remote notifications");
+            NSLOG(@"{devkit.push} Registering for remote notifications");
         [[PluginManager get] dispatchJSEvent:@{
                                         @"name": @"DevkitPushRegisterEvent",
                                         @"token": deviceTokenString,
@@ -57,7 +57,7 @@
 }
 
 - (void) didReceiveRemoteNotification:(NSDictionary *)userInfo application:(UIApplication *)app {
-    NSLOG(@"{devkitpush} Received remote notification");
+    NSLOG(@"{devkit.push} Received remote notification");
     bool didLaunch = app.applicationState == UIApplicationStateInactive ||
            app.applicationState == UIApplicationStateBackground;
 
@@ -67,17 +67,17 @@
 }
 
 - (void) onPause {
-    NSLOG(@"{devkitpush} Paused: Clearing icon badge counter");
+    NSLOG(@"{devkit.push} Paused: Clearing icon badge counter");
     [[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 }
 
 - (void) onResume {
-    NSLOG(@"{devkitpush} Resumed: Clearing icon badge counter");
+    NSLOG(@"{devkit.push} Resumed: Clearing icon badge counter");
     [[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 }
 
 - (void) getPushToken:(NSDictionary *)jsonObject {
-    NSLOG(@"{devkitpush} Requesting notification permission");
+    NSLOG(@"{devkit.push} Requesting notification permission");
     // TODO: can we check if we already have permission?
     if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0) {
         [[UIApplication sharedApplication] registerUserNotificationSettings:
@@ -98,7 +98,7 @@
         TeaLeafAppDelegate *app = (TeaLeafAppDelegate *)[[UIApplication sharedApplication] delegate];
     }
     @catch (NSException *exception) {
-        NSLOG(@"{devkitpush} WARNING: Exception during initialization: %@", exception);
+        NSLOG(@"{devkit.push} WARNING: Exception during initialization: %@", exception);
     }
 }
 

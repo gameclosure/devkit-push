@@ -67,7 +67,7 @@ public class GcmIntentService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        logger.log("{devkitpush} GcmIntentService handling notification intent");
+        logger.log("{devkit.push} GcmIntentService handling notification intent");
 
         Bundle extras = intent.getExtras();
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
@@ -115,7 +115,7 @@ public class GcmIntentService extends IntentService {
 
                 boolean isOpen = AppInfo.get().isOpen();
                 if (isOpen) {
-                    logger.log("{devkitpush} app appears to be running - sending broadcast intent");
+                    logger.log("{devkit.push} app appears to be running - sending broadcast intent");
                     // TODO: if already running in foreground, send intent
                     // instead of putting message in status bar
                     Intent broadcastIntent = new Intent();
@@ -123,7 +123,7 @@ public class GcmIntentService extends IntentService {
                     updateIntentWithBasicInfo(broadcastIntent, basicInfo);
                     sendBroadcast(broadcastIntent);
                 } else {
-                    logger.log("{devkitpush} app appears to be in background - adding notification to status bar");
+                    logger.log("{devkit.push} app appears to be in background - adding notification to status bar");
                     // put notification in status bar
                     showNotificationInStatusBar(context, basicInfo, null);
                 }
@@ -152,7 +152,7 @@ public class GcmIntentService extends IntentService {
     // if no rich notification is given, a basic notification is shown.
     // if rich notification info is given, a larger notification will be shown with a banner and action items to click on
     public void showNotificationInStatusBar(Context context, BasicNotificationInfo basicInfo, RichNotificationInfo richInfo) {
-        logger.log("{devkitpush} showNotificationInStatusBar:" , basicInfo.title);
+        logger.log("{devkit.push} showNotificationInStatusBar:" , basicInfo.title);
         NotificationCompat.Builder mBuilder = null;
         if (basicInfo != null) {
             mBuilder = new NotificationCompat.Builder(context)
