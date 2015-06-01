@@ -95,7 +95,6 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
     }
 
     public void onResume() {
-        AppInfo.get().setIsOpen(true);
         // Check device for Play Services APK.
         checkPlayServices();
     }
@@ -340,14 +339,8 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
     public void setInstallReferrer(String referrer) {}
     public void onActivityResult(Integer request, Integer resultCode, Intent data) {}
     public void onDestroy() {}
-    public void onStop() {
-        AppInfo.get().setIsOpen(false);
-    };
-    public void onStart() {
-        AppInfo.get().setIsOpen(true);
-    };
-    public void onPause() {
-        AppInfo.get().setIsOpen(false);
-    };
+    public void onStop() {}
+    public void onStart() {}
+    public void onPause() {}
 }
 
