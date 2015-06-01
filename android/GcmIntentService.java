@@ -82,9 +82,9 @@ public class GcmIntentService extends IntentService {
              * not interested in, or that you don't recognize.
              */
             if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
-                // logger.log("Send error: " + extras.toString());
+                logger.log("{devkit.push} GCM Send error: " + extras.toString());
             } else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED.equals(messageType)) {
-                // logger.log("Deleted messages on server: " + extras.toString());
+                logger.log("{devkit.push} Deleted messages on GCM server: " + extras.toString());
             // If it's a regular GCM message, do some work.
             } else if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
                 Context context = getApplicationContext();
@@ -115,7 +115,7 @@ public class GcmIntentService extends IntentService {
 
                 boolean isOpen = AppInfo.get().isOpen();
                 if (isOpen) {
-                    logger.log("{devkit.push} app appears to be running - sending broadcast intent");
+                    logger.log("{devkit.push} app is open - sending broadcast intent");
                     // TODO: if already running in foreground, send intent
                     // instead of putting message in status bar
                     Intent broadcastIntent = new Intent();
@@ -123,7 +123,7 @@ public class GcmIntentService extends IntentService {
                     updateIntentWithBasicInfo(broadcastIntent, basicInfo);
                     sendBroadcast(broadcastIntent);
                 } else {
-                    logger.log("{devkit.push} app appears to be in background - adding notification to status bar");
+                    logger.log("{devkit.push} app is in background - adding notification to status bar");
                     // put notification in status bar
                     showNotificationInStatusBar(context, basicInfo, null);
                 }

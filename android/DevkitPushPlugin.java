@@ -145,8 +145,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
                 GooglePlayServicesUtil.getErrorDialog(resultCode, _activity,
                         PLAY_SERVICES_RESOLUTION_REQUEST).show();
             } else {
-                logger.log("{devkit.push} This device is not supported with Google Play Services");
-                // finish();
+                logger.log("{devkit.push} Error - This device is not supported with Google Play Services");
             }
             return false;
         }
@@ -230,13 +229,13 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
                     // If there is an error, don't just keep trying to register.
                     // Require the user to click a button again, or perform
                     // exponential back-off.
+                    logger.log("{devkit.push} Error - Failed to register " + msg);
                 }
                 return msg;
             }
 
             @Override
             protected void onPostExecute(String msg) {
-                // logger.log("{devkit.push} " + msg);
             }
         }.execute(null, null, null);
     }
