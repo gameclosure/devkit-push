@@ -87,11 +87,11 @@ var DevkitPush = Class(function(supr) {
   };
 
   this.onRegister = function (data) {
-    logger.log("{devkit.push} DevkitPushRegisterEvent received in js");
+    logger.log("DevkitPushRegisterEvent received in js");
     var err = !data || data.error;
     if (this._registrationCallback) {
       if (err) {
-        logger.log("{devkit.push} Failed to register push token");
+        logger.log("Failed to register push token");
       }
       this._registrationCallback(err, data);
       this._registrationResponse = null;
@@ -104,7 +104,7 @@ var DevkitPush = Class(function(supr) {
   this.onNotification = function (data) {
     var err = !data || data.error;
     if (err) {
-      logger.log("{devkit.push} error processing push notification");
+      logger.log("error processing push notification");
     }
 
     if (this._notificationHandler) {
@@ -222,7 +222,7 @@ var DevkitPush = Class(function(supr) {
             })
         })
         .catch(function(err) {
-          logger.warn(err);
+          logger.error(err);
           throw err;
         });
     }
@@ -238,7 +238,7 @@ var DevkitPush = Class(function(supr) {
 
   // web worker debugging only - will show a placeholder notification
   this.useDemoPushHandler = function (useDemo) {
-    logger.log("{devkit.push} enabling demo push handler for web workers");
+    logger.log("enabling demo push handler for web workers");
     _worker && _worker.postMessage({
       command: 'useDemoPushHandler',
       useDemoPushHandler: useDemo
