@@ -149,12 +149,10 @@ public class GcmIntentService extends IntentService {
     }
 
     // shows a notification in the status bar
-    // if no rich notification is given, a basic notification is shown.
-    // if rich notification info is given, a larger notification will be shown with a banner and action items to click on
-    public void showNotificationInStatusBar(Context context, BasicNotificationInfo basicInfo, RichNotificationInfo richInfo) {
-        logger.log("{devkit.push} showNotificationInStatusBar:" , basicInfo.title);
+    public void showNotificationInStatusBar(Context context, BasicNotificationInfo basicInfo) {
         NotificationCompat.Builder mBuilder = null;
         if (basicInfo != null) {
+            logger.log("{devkit.push} showNotificationInStatusBar:" , basicInfo.title);
             mBuilder = new NotificationCompat.Builder(context)
                 .setAutoCancel(true)
                 .setSmallIcon(context.getResources().getIdentifier("icon", "drawable", context.getPackageName()))
@@ -168,54 +166,19 @@ public class GcmIntentService extends IntentService {
 
         } else {
             //we need to have basic info, if not, fail...
+            logger.log("{devkit.push} Error - Failed to show notification - missing required information");
             return;
         }
 
         //build the intent for clicking on the basic notification
-        Intent intent = null;
-        if (richInfo != null && richInfo.uri != null) {
-            intent = new Intent(Intent.ACTION_VIEW);
-            intent.setData(Uri.parse(richInfo.uri));
-        } /*else if (basicInfo.packageName != null && basicInfo.packageName.length() > 0) {
-            String link = "market://details?id=" + basicInfo.packageName;
-            //basicInfo.referrer should be json, base64'd
-            if (basicInfo.referrer != null && basicInfo.referrer.length() > 0) {
-                link += "&referrer=" + basicInfo.referrer;
-            }
-            intent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
-        } */ else {
-            intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        }
-
+        Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         updateIntentWithBasicInfo(intent, basicInfo);
 
         PendingIntent pending = PendingIntent.getActivity(context, PUSH_GROUP_ID, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         //set content intent
         mBuilder.setContentIntent(pending);
-
-        Notification notification = null;
-        if (richInfo != null) {
-            //add actions that can be clicked at the bottom of the rich notification
-            for (ActionItem action : richInfo.actions) {
-                Intent actionIntent = new Intent(Intent.ACTION_VIEW);
-                actionIntent.setData(Uri.parse(action.uri));
-                PendingIntent actionPendingIntent = PendingIntent.getActivity(context, 0, actionIntent, 0);
-                mBuilder.addAction(context.getResources().getIdentifier(action.icon, "drawable", context.getPackageName()), action.text, actionPendingIntent);
-            }
-
-            //create and build the big notification with rich info
-            notification = new NotificationCompat.BigPictureStyle(mBuilder)
-                .setSummaryText(basicInfo.message)
-                .setBigContentTitle(basicInfo.title)
-                .bigLargeIcon(richInfo.bigLargeIcon)
-                .bigPicture(richInfo.bigPicture)
-                .build();
-
-        } else {
-            //if there is no rich notification information, build a normal notification
-            notification = mBuilder.build();
-        }
+        notification = mBuilder.build();
 
         if (basicInfo.count > 1) {
             notification.number = basicInfo.count;
@@ -240,27 +203,5 @@ public class GcmIntentService extends IntentService {
         Bitmap largeIcon;
         String packageName;
         String referrer;
-    }
-
-    // holds rich notification info for larger notifications
-    // not required
-    private static class RichNotificationInfo {
-        String uri;
-        Bitmap bigPicture;
-        Bitmap bigLargeIcon;
-        String bigPictureUri;
-        ArrayList<ActionItem> actions = new ArrayList<ActionItem>();
-    }
-
-    // represents an action item that can be added to rich notifications
-    private static class ActionItem {
-        String icon;
-        String text;
-        String uri;
-        public ActionItem(String text, String icon, String uri) {
-            this.text = text;
-            this.icon = icon;
-            this.uri = uri;
-        }
     }
 }
