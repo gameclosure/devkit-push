@@ -110,7 +110,7 @@ public class DevkitPushPlugin extends BroadcastReceiver implements IPlugin {
         }
 
         // Check device for Play Services APK. If check succeeds, proceed with GCM registration.
-        if (senderId != "" && checkPlayServices()) {
+        if (!senderId.equals("") && checkPlayServices()) {
             gcm = GoogleCloudMessaging.getInstance(_context);
             regid = getRegistrationId(_context);
 
