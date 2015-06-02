@@ -6,10 +6,11 @@
       "devkit.push": "js"
     },
     "extensions": {
-      "build": "build"
+      "build": "build",
+      "ios": "ios",
+      "android": "android"
     }
   },
   "dependencies": {
-    "vinyl": "^0.4.6"
   }
 }

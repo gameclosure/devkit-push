@@ -1,0 +1,8 @@
+{
+	"code": [
+		"DevkitPushPlugin.h",
+		"DevkitPushPlugin.mm"
+	],
+	"frameworks": [
+	]
+}
