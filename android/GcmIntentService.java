@@ -125,7 +125,7 @@ public class GcmIntentService extends IntentService {
                 } else {
                     logger.log("{devkit.push} app is in background - adding notification to status bar");
                     // put notification in status bar
-                    showNotificationInStatusBar(context, basicInfo, null);
+                    showNotificationInStatusBar(context, basicInfo);
                 }
             }
         }
@@ -178,7 +178,7 @@ public class GcmIntentService extends IntentService {
         PendingIntent pending = PendingIntent.getActivity(context, PUSH_GROUP_ID, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         //set content intent
         mBuilder.setContentIntent(pending);
-        notification = mBuilder.build();
+        Notification notification = mBuilder.build();
 
         if (basicInfo.count > 1) {
             notification.number = basicInfo.count;
