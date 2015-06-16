@@ -151,7 +151,7 @@ public class GcmIntentService extends IntentService {
     // shows a notification in the status bar
     public void showNotificationInStatusBar(Context context, BasicNotificationInfo basicInfo) {
         NotificationCompat.Builder mBuilder = null;
-        if (basicInfo != null) {
+        if (basicInfo != null && (basicInfo.title != null || basicInfo.message != null)) {
             logger.log("{devkit.push} showNotificationInStatusBar:" , basicInfo.title);
             mBuilder = new NotificationCompat.Builder(context)
                 .setAutoCancel(true)
