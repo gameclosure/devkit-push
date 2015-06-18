@@ -1,3 +1,5 @@
+/* globals NATIVE, ServiceWorkerRegistration, logger */
+
 import device;
 import Promise;
 from devkit.errors import createErrorClass;
