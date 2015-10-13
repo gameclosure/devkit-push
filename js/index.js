@@ -217,7 +217,8 @@ var DevkitPush = Class(function(supr) {
                 return _serviceWorkerSubscribe(registration);
               } else {
                 return {
-                  pushToken: subscription.subscriptionId,
+                  pushToken: parseTokenFromEndpoint(subscription.endpoint),
+                  endpoint: subscription.endpoint,
                   platform: exports.platform
                 };
               }
@@ -252,6 +253,15 @@ var DevkitPush = Class(function(supr) {
 
 exports = new DevkitPush();
 
+function parseTokenFromEndpoint(endpoint) {
+  var gcmPrefix = 'https://android.googleapis.com/gcm/send';
+  if (endpoint.substr(0, gcmPrefix.length) === gcmPrefix) {
+    var parts = endpoint.split('/');
+    return parts[parts.length - 1];
+  } else {
+    logger.error('could not parse token from endpoint - only gcm supported');
+  }
+}
 
 // used in service worker notification manager subscription
 function _serviceWorkerSubscribe(registration) {
@@ -259,7 +269,8 @@ function _serviceWorkerSubscribe(registration) {
     .subscribe({userVisibleOnly: true})
     .then(function(subscription) {
       return {
-        pushToken: subscription.subscriptionId,
+        pushToken: parseTokenFromEndpoint(subscription.endpoint),
+        endpoint: subscription.endpoint,
         platform: exports.platform
       };
     })
